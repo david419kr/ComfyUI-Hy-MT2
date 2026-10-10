@@ -1,4 +1,5 @@
 @echo off
+rem SPDX-License-Identifier: MIT
 setlocal
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0install-comfyui-hymt2.ps1" %*
 set "result=%errorlevel%"

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 param([Alias('ComfyRoot')][string]$PortableRoot = '')
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'

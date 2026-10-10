@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Private stdin/stdout worker; runs only in the Hy-MT2 node's dedicated venv."""
 import contextlib
 import json

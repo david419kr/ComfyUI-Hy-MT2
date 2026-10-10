@@ -41,6 +41,21 @@ The original node's features and model documentation follow below. This fork
 retains the original GPL-3.0 license. The original registry publishing workflow
 is restricted to the upstream repository.
 
+PhotoCraft detects these local translation files automatically:
+
+- `Hy-MT2-1.8B-heretic.i1-Q4_K_M.gguf`
+- `HY-MT2-7B-Abliterated-Q4_K_M.gguf`
+
+The newly authored installer/private-worker files carry MIT SPDX headers; the
+upstream node and the remainder of this fork retain GPL-3.0.
+
+Verified on 2026-10-11 with Windows PowerShell 5.1: fresh installation in a
+path containing spaces and Korean characters, Git fast-forward update, Git-free
+ZIP installation with source backup and environment reuse, and CUDA loading
+without system Toolkit paths. The installed node translated a short Korean
+greeting to English using the 1.8B Heretic model and then unloaded its worker.
+This was tested on one NVIDIA PC; other hardware has not been tested.
+
 [![HuggingFace](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Tencent%20Hy--MT2-ffc107?color=ffc107&logoColor=white)](https://huggingface.co/collections/tencent/hy-mt2)
 [![ModelScope](https://img.shields.io/badge/ModelScope-Tencent%20Hy--MT2-624aff)](https://modelscope.cn/collections/Tencent-Hunyuan/Hy-MT2)
 [![GitHub](https://img.shields.io/badge/GitHub-Tencent--Hunyuan%2FHy--MT2-black?logo=github)](https://github.com/Tencent-Hunyuan/Hy-MT2)

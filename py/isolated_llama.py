@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """The node's Llama interface, backed by its private Python process rather than ComfyUI imports."""
 import json
 import os
