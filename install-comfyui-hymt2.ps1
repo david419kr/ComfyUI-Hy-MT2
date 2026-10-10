@@ -113,15 +113,17 @@ try {
     New-Item -ItemType Directory -Path $nodes -Force | Out-Null
     $node = Checked-Path (Join-Path $nodes 'ComfyUI-Hy-MT2')
     $git = Get-Command git -ErrorAction SilentlyContinue
+    # Portable drives can report a different owner; trust only this node for these commands.
+    $nodeGitArgs = @('-c', ('safe.directory=' + $node.Replace('\','/')), '-C', $node)
     $update = $false
     if ((Test-Path -LiteralPath (Join-Path $node '.git')) -and $git) {
-        $origin = & $git.Source -C $node remote get-url origin 2>$null
+        $origin = & $git.Source @nodeGitArgs remote get-url origin 2>$null
         if ($LASTEXITCODE -eq 0 -and $origin.TrimEnd('/').Replace('.git','') -eq $fork) {
-            $dirty = & $git.Source -C $node status --porcelain
+            $dirty = & $git.Source @nodeGitArgs status --porcelain
             if ($LASTEXITCODE -ne 0 -or $dirty) { throw 'The fork has local source changes; commit or back them up before updating.' }
-            $branch = & $git.Source -C $node branch --show-current
+            $branch = & $git.Source @nodeGitArgs branch --show-current
             if ($LASTEXITCODE -ne 0 -or $branch -ne 'main') { throw 'The installed fork must be on main to update automatically.' }
-            & $git.Source -C $node pull --ff-only origin main
+            & $git.Source @nodeGitArgs pull --ff-only origin main
             if ($LASTEXITCODE -ne 0) { throw 'Fork update failed; existing files were preserved.' }
             $update = $true
         }

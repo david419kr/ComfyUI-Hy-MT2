@@ -68,6 +68,10 @@ reported failing friend PC was not inspected. Windows PowerShell 5.1 regression
 checks verified fresh archive extraction/venv creation with zero reparse points
 and failed-install Python reuse without another download.
 
+If Git reports `detected dubious ownership`, update the root PS1 and rerun the
+CMD. Installer Git commands trust only the validated Hy-MT2 node path through
+command-scoped `safe.directory`; global/system Git settings are not modified.
+
 [![HuggingFace](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Tencent%20Hy--MT2-ffc107?color=ffc107&logoColor=white)](https://huggingface.co/collections/tencent/hy-mt2)
 [![ModelScope](https://img.shields.io/badge/ModelScope-Tencent%20Hy--MT2-624aff)](https://modelscope.cn/collections/Tencent-Hunyuan/Hy-MT2)
 [![GitHub](https://img.shields.io/badge/GitHub-Tencent--Hunyuan%2FHy--MT2-black?logo=github)](https://github.com/Tencent-Hunyuan/Hy-MT2)
