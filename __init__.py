@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 __repo_name__ = "ComfyUI-Hy-MT2"
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 # Locate current and node directories
 current_dir = Path(__file__).parent

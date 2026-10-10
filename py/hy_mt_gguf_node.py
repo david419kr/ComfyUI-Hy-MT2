@@ -449,10 +449,10 @@ class HyMT_Translation_GGUF:
 
     def load_model(self, model: str, gpu_layers: int = -1):
         try:
-            from llama_cpp import Llama
+            from .isolated_llama import Llama
         except ImportError:
             raise ImportError(
-                "[HyMT GGUF] llama-cpp-python is not installed. Please install it using: pip install llama-cpp-python"
+                "[HyMT GGUF] dedicated runtime is missing. Run install-comfyui-hymt2.ps1."
             )
 
         signature = (model, int(gpu_layers))
@@ -462,6 +462,10 @@ class HyMT_Translation_GGUF:
         model_path = ensure_gguf_file(model)
         print(f"[HyMT GGUF] Loading model from '{model_path}' (gpu_layers={gpu_layers}) ...")
 
+        if self.llm is not None:
+            self.llm.close()
+        self.llm = None
+        self.current_signature = None
         self.llm = Llama(
             model_path=model_path,
             n_gpu_layers=int(gpu_layers),
@@ -472,6 +476,8 @@ class HyMT_Translation_GGUF:
         print(f"[HyMT GGUF] Model loaded successfully.")
 
     def unload_model(self):
+        if self.llm is not None:
+            self.llm.close()
         self.llm = None
         self.current_signature = None
         free_memory()

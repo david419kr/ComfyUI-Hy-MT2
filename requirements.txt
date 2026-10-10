@@ -1,3 +1,3 @@
-llama-cpp-python
+# llama-cpp-python lives in the node dedicated .venv; use the runtime installer.
 huggingface-hub
 torch

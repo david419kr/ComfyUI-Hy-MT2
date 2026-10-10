@@ -1,5 +1,46 @@
 # ComfyUI-Hy-MT2
 
+## Windows portable fork
+
+This fork runs llama-cpp-python in the node's private Python process. Its GGUF
+node IDs and inputs remain compatible with the upstream node and PhotoCraft.
+ComfyUI's own llama-cpp-python, Torch and other inference packages are not replaced.
+
+1. Download **both** [install-comfyui-hymt2.cmd](https://raw.githubusercontent.com/david419kr/ComfyUI-Hy-MT2/main/install-comfyui-hymt2.cmd)
+   and [install-comfyui-hymt2.ps1](https://raw.githubusercontent.com/david419kr/ComfyUI-Hy-MT2/main/install-comfyui-hymt2.ps1).
+2. Put them **inside `ComfyUI_windows_portable`**, beside `ComfyUI` and
+   `python_embeded`. Close ComfyUI, then double-click the CMD file.
+3. Restart ComfyUI. Place GGUF translation models under `ComfyUI/models/LLM/GGUF`.
+
+The installer detects the portable root by structure, downloads a private `uv`
+tool when needed, installs Python 3.13 in the node's `.python`, creates `.venv`,
+and installs pinned CUDA 12.8 llama-cpp-python and NVIDIA runtime/cuBLAS wheels.
+No preinstalled system Python, uv, CUDA Toolkit, C++ compiler or Git is required.
+With Git it clones/updates this fork; without Git it installs the GitHub ZIP.
+Requirements: Windows x64, a working NVIDIA ComfyUI portable installation with
+a CUDA 12.8-compatible driver, network access and several GB of free disk space.
+GGUF models are separate; this installer does not download model weights.
+
+Existing upstream/ZIP nodes are backed up outside `custom_nodes`, in
+`.hymt2-backups`, so ComfyUI does not load them twice. An existing clean Git fork
+updates with fast-forward only; locally edited sources are preserved and require
+manual reconciliation. Runtime files are ignored by Git. Rerun the installer
+after moving the portable folder to repair/recreate a broken private environment.
+Backups are retained until you remove them yourself. No global PATH or CUDA
+installation is changed. The installer checks CUDA backend loading without
+loading a model. A missing host huggingface-hub dependency is installed into the
+embedded ComfyUI Python; the llama runtime stays isolated.
+
+For a portable folder elsewhere, run:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install-comfyui-hymt2.ps1 -PortableRoot "E:\AI\ComfyUI_windows_portable"
+```
+
+The original node's features and model documentation follow below. This fork
+retains the original GPL-3.0 license. The original registry publishing workflow
+is restricted to the upstream repository.
+
 [![HuggingFace](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Tencent%20Hy--MT2-ffc107?color=ffc107&logoColor=white)](https://huggingface.co/collections/tencent/hy-mt2)
 [![ModelScope](https://img.shields.io/badge/ModelScope-Tencent%20Hy--MT2-624aff)](https://modelscope.cn/collections/Tencent-Hunyuan/Hy-MT2)
 [![GitHub](https://img.shields.io/badge/GitHub-Tencent--Hunyuan%2FHy--MT2-black?logo=github)](https://github.com/Tencent-Hunyuan/Hy-MT2)
@@ -75,7 +116,8 @@ Tencent released extreme quantization models ([`Hy-MT2-1.8B-1.25bit-GGUF`](https
 ## Dependencies
 
 ```bash
-pip install llama-cpp-python huggingface-hub
+# Host dependency only; the Windows installer manages the private llama runtime.
+pip install huggingface-hub
 ```
 
 ---

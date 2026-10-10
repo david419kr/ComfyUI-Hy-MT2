@@ -9,6 +9,7 @@ on:
 
 jobs:
   publish-node:
+    if: github.repository == '1038lab/ComfyUI-Hy-MT2'
     name: Publish Custom Node to registry
     runs-on: ubuntu-latest
     steps:
