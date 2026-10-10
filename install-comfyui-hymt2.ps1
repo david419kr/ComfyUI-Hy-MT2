@@ -6,6 +6,8 @@ $ProgressPreference = 'SilentlyContinue'
 $fork = 'https://github.com/david419kr/ComfyUI-Hy-MT2'
 $uvVersion = '0.10.11'
 $uvHash = '9ee74df98582f37fdd6069e1caac80d2616f9a489f5dbb2b1c152f30be69c58e'
+$pythonUrl = 'https://github.com/astral-sh/python-build-standalone/releases/download/20260310/cpython-3.13.12%2B20260310-x86_64-pc-windows-msvc-install_only_stripped.tar.gz'
+$pythonHash = '09df14cdd7ad59863596189623b2f34f6a2925b9317279ce53346a38dd62e60f'
 
 function Download([string]$Url, [string]$File) {
     Invoke-WebRequest -Uri $Url -OutFile $File -UseBasicParsing -Headers @{'User-Agent'='ComfyUI-Hy-MT2-installer'}
@@ -28,6 +30,46 @@ function Checked-Path([string]$Path) {
 function Run-UV([string[]]$Arguments) {
     & $script:uv @Arguments
     if ($LASTEXITCODE -ne 0) { throw "uv failed: $($Arguments -join ' ')" }
+}
+function Private-Python([string]$Node, [string]$HostPython, [string]$Tools) {
+    $root = Checked-Path (Join-Path $Node '.python')
+    New-Item -ItemType Directory -Path $root -Force | Out-Null
+    $candidates = @((Join-Path $root 'python/python.exe'))
+    # A failed uv install can already have extracted a usable patch-version directory.
+    $legacy = Get-ChildItem -LiteralPath $root -Directory | Where-Object {
+        $_.Name -match '^cpython-3\.13\.\d+-windows-x86_64-none$' -and !($_.Attributes -band [IO.FileAttributes]::ReparsePoint)
+    } | Sort-Object Name -Descending
+    foreach ($directory in $legacy) { $candidates += Join-Path $directory.FullName 'python.exe' }
+    foreach ($candidate in $candidates) {
+        if (Test-Path -LiteralPath $candidate -PathType Leaf) {
+            $candidate = Checked-Path $candidate
+            & $candidate -I -c 'import sys; sys.exit(0 if sys.version_info[:2] == (3, 13) else 1)'
+            if ($LASTEXITCODE -eq 0) { return $candidate }
+        }
+    }
+    Write-Host 'Downloading private Python 3.13.12 (no version links).'
+    $archive = Checked-Path (Join-Path $Tools ('python-' + [Guid]::NewGuid().ToString('N') + '.tar.gz'))
+    Download $script:pythonUrl $archive
+    if ((Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash -ne $script:pythonHash) { throw 'Python download checksum mismatch.' }
+    $extract = @'
+import pathlib, sys, tarfile
+root = pathlib.Path(sys.argv[2]).resolve()
+with tarfile.open(sys.argv[1], 'r:gz') as archive:
+    members = archive.getmembers()
+    for member in members:
+        target = (root / member.name).resolve()
+        if not (member.isfile() or member.isdir()) or not target.is_relative_to(root):
+            raise RuntimeError('Python archive contains a link or an unsafe path')
+    archive.extractall(root, members=members, filter='data')
+'@
+    & $HostPython -I -c $extract $archive $root
+    if ($LASTEXITCODE -ne 0) { throw 'Private Python archive extraction failed.' }
+    $python = Checked-Path (Join-Path $root 'python/python.exe')
+    if (!(Test-Path -LiteralPath $python -PathType Leaf)) { throw 'Private Python executable is missing after extraction.' }
+    & $python -I -c 'import sys; sys.exit(0 if sys.version_info[:2] == (3, 13) else 1)'
+    if ($LASTEXITCODE -ne 0) { throw 'Private Python 3.13 cannot start.' }
+    Remove-Item -LiteralPath $archive
+    return $python
 }
 
 try {
@@ -123,9 +165,9 @@ try {
     $oldPythonDir = [Environment]::GetEnvironmentVariable('UV_PYTHON_INSTALL_DIR')
     $oldDownloads = [Environment]::GetEnvironmentVariable('UV_PYTHON_DOWNLOADS')
     try {
-        $env:UV_PYTHON_INSTALL_DIR = Join-Path $node '.python'
-        $env:UV_PYTHON_DOWNLOADS = 'automatic'
-        Run-UV -Arguments @('python','install','--no-bin','3.13')
+        Remove-Item Env:UV_PYTHON_INSTALL_DIR -ErrorAction SilentlyContinue
+        $env:UV_PYTHON_DOWNLOADS = 'never'
+        $basePython = Private-Python $node $hostPython $tools
         $venv = Checked-Path (Join-Path $node '.venv')
         $python = Join-Path $venv 'Scripts/python.exe'
         $validEnv = $false
@@ -138,7 +180,7 @@ try {
                 $oldEnv = Checked-Path (Join-Path $node ('.venv.backup-' + [Guid]::NewGuid().ToString('N')))
                 Move-Item -LiteralPath $venv -Destination $oldEnv
             }
-            Run-UV -Arguments @('venv','--managed-python','--python','3.13','--relocatable',$venv)
+            Run-UV -Arguments @('venv','--no-managed-python','--no-python-downloads','--python',$basePython,'--relocatable','--link-mode','copy',$venv)
         }
         Run-UV -Arguments @('pip','install','--python',$python,'--only-binary',':all:','--link-mode','copy','--requirements',(Join-Path $node 'runtime/requirements.txt'))
         & $hostPython -I -c "import importlib.util,sys; sys.exit(0 if importlib.util.find_spec('huggingface_hub') else 1)"

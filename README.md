@@ -13,7 +13,8 @@ ComfyUI's own llama-cpp-python, Torch and other inference packages are not repla
 3. Restart ComfyUI. Place GGUF translation models under `ComfyUI/models/LLM/GGUF`.
 
 The installer detects the portable root by structure, downloads a private `uv`
-tool when needed, installs Python 3.13 in the node's `.python`, creates `.venv`,
+tool when needed, extracts a checksum-verified Python 3.13.12 archive into the
+node's `.python` using ordinary files/directories, creates `.venv`,
 and installs pinned CUDA 12.8 llama-cpp-python and NVIDIA runtime/cuBLAS wheels.
 No preinstalled system Python, uv, CUDA Toolkit, C++ compiler or Git is required.
 With Git it clones/updates this fork; without Git it installs the GitHub ZIP.
@@ -55,6 +56,17 @@ ZIP installation with source backup and environment reuse, and CUDA loading
 without system Toolkit paths. The installed node translated a short Korean
 greeting to English using the 1.8B Heretic model and then unloaded its worker.
 This was tested on one NVIDIA PC; other hardware has not been tested.
+
+If an older installer stopped at `Failed to create Python minor version link
+directory`, replace the root `install-comfyui-hymt2.ps1` with the latest download
+and run the CMD again. The new installer does not use `uv python install` or
+minor-version junctions. It reuses a valid patch-version Python already extracted
+by the failed installation and passes that real executable directly to venv.
+No node or Python directory needs to be deleted. This supports installation
+locations where version links cannot be created; the actual filesystem of a
+reported failing friend PC was not inspected. Windows PowerShell 5.1 regression
+checks verified fresh archive extraction/venv creation with zero reparse points
+and failed-install Python reuse without another download.
 
 [![HuggingFace](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Tencent%20Hy--MT2-ffc107?color=ffc107&logoColor=white)](https://huggingface.co/collections/tencent/hy-mt2)
 [![ModelScope](https://img.shields.io/badge/ModelScope-Tencent%20Hy--MT2-624aff)](https://modelscope.cn/collections/Tencent-Hunyuan/Hy-MT2)
