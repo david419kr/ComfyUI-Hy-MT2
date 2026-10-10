@@ -19,12 +19,12 @@ class IsolatedRuntimeTests(unittest.TestCase):
         worker = module("runtime/llama_worker.py", "hymt_worker_test")
         with tempfile.TemporaryDirectory() as folder:
             site = Path(folder)
-            for package in ("cuda_runtime", "cublas"):
+            for package in ("cuda_runtime", "cublas", "cuda_nvrtc"):
                 (site / "nvidia" / package / "bin").mkdir(parents=True)
-            with patch.object(worker.sysconfig, "get_path", return_value=folder), patch.object(worker.os, "add_dll_directory", create=True) as add:
+            with patch.dict(os.environ), patch.object(worker.sysconfig, "get_path", return_value=folder), patch.object(worker.os, "add_dll_directory", create=True) as add:
                 handles = worker.cuda_directories()
-                self.assertEqual(len(handles), 2)
-                self.assertEqual([Path(call.args[0]) for call in add.call_args_list], [site / "nvidia" / name / "bin" for name in ("cuda_runtime", "cublas")])
+                self.assertEqual(len(handles), 3)
+                self.assertEqual([Path(call.args[0]) for call in add.call_args_list], [site / "nvidia" / name / "bin" for name in ("cuda_runtime", "cublas", "cuda_nvrtc")])
                 handles[0].close.assert_not_called()
             (site / "nvidia" / "cublas" / "bin").rmdir()
             with patch.object(worker.sysconfig, "get_path", return_value=folder), patch.object(worker.os, "add_dll_directory", create=True):

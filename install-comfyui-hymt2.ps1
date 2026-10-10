@@ -124,7 +124,7 @@ try {
     try {
         $env:UV_PYTHON_INSTALL_DIR = Join-Path $node '.python'
         $env:UV_PYTHON_DOWNLOADS = 'automatic'
-        Run-UV -Arguments @('python','install','3.13')
+        Run-UV -Arguments @('python','install','--no-bin','3.13')
         $venv = Checked-Path (Join-Path $node '.venv')
         $python = Join-Path $venv 'Scripts/python.exe'
         $validEnv = $false
@@ -140,7 +140,7 @@ try {
             Run-UV -Arguments @('venv','--managed-python','--python','3.13','--relocatable',$venv)
         }
         Run-UV -Arguments @('pip','install','--python',$python,'--only-binary',':all:','--link-mode','copy','--requirements',(Join-Path $node 'runtime/requirements.txt'))
-        & $hostPython -I -c 'import importlib.util,sys; sys.exit(0 if importlib.util.find_spec("huggingface_hub") else 1)'
+        & $hostPython -I -c "import importlib.util,sys; sys.exit(0 if importlib.util.find_spec('huggingface_hub') else 1)"
         if ($LASTEXITCODE -ne 0) { Run-UV -Arguments @('pip','install','--python',$hostPython,'--system','--only-binary',':all:','huggingface-hub') }
         & $python -I -X utf8 (Join-Path $node 'runtime/llama_worker.py') --check
         if ($LASTEXITCODE -ne 0) { throw 'Private runtime validation failed. Check the NVIDIA driver and messages above, then rerun this installer.' }

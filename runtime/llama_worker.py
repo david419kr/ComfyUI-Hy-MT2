@@ -13,17 +13,23 @@ def cuda_directories():
         return []
     handles = []
     site = Path(sysconfig.get_path("purelib"))
-    for package in ("cuda_runtime", "cublas"):
+    paths = []
+    for package in ("cuda_runtime", "cublas", "cuda_nvrtc"):
         directory = site / "nvidia" / package / "bin"
         if not directory.is_dir():
             raise RuntimeError("Hy-MT2 private CUDA runtime is missing; rerun install-comfyui-hymt2.cmd")
         handles.append(os.add_dll_directory(str(directory)))
+        paths.append(str(directory))
+    os.environ["PATH"] = os.pathsep.join(paths + [os.environ.get("PATH", "")])
     return handles
 
 def check_runtime():
+    import llama_cpp
+    from llama_cpp._ggml import ggml_backend_load_all_from_path
     from llama_cpp import llama_backend_init, llama_backend_free, llama_supports_gpu_offload
     llama_backend_init()
     try:
+        ggml_backend_load_all_from_path(str(Path(llama_cpp.__file__).resolve().parent / "lib").encode("utf-8"))
         supported = bool(llama_supports_gpu_offload())
         if not supported:
             raise RuntimeError("Hy-MT2 CUDA backend did not load; check the NVIDIA driver and installer output")
@@ -32,6 +38,8 @@ def check_runtime():
         llama_backend_free()
 
 def main():
+    for key in ("CUDA_PATH", "CUDA_HOME", "HIP_PATH", "VULKAN_SDK", "LLAMA_CPP_LIB"):
+        os.environ.pop(key, None)
     directories = cuda_directories()
     if sys.argv[1:] == ["--check"]:
         check_runtime()
