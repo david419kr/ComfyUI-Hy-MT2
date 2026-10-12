@@ -58,6 +58,10 @@ class Llama:
     def create_chat_completion(self, **kwargs):
         return self._request("complete", kwargs)
 
+    def is_alive(self):
+        process = getattr(self, "_process", None)
+        return process is not None and process.poll() is None
+
     def close(self):
         process = getattr(self, "_process", None)
         if process is not None:

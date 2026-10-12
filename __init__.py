@@ -43,6 +43,11 @@ def load_nodes():
 
 # Load all nodes
 load_nodes()
+try:
+    from .py.residency import install as install_residency
+    install_residency()
+except (ImportError, AttributeError) as error:
+    print(f"[{__repo_name__}] Residency integration unavailable: {error}")
 
 __all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS", "WEB_DIRECTORY"]
 

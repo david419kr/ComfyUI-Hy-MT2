@@ -50,6 +50,30 @@ PhotoCraft detects these local translation files automatically:
 The newly authored installer/private-worker files carry MIT SPDX headers; the
 upstream node and the remainder of this fork retain GPL-3.0.
 
+With `unload_after_run=false`, the selected GGUF worker now survives node-cache
+cleanup and subsequent image jobs. Translation-only graphs retain the preceding
+standalone UNET/CLIP/VAE loader cache keys; these disconnected loader nodes do not
+run image inference. This also avoids ComfyUI's default RAM-pressure cache evicting
+the image weights merely because the next job is a translation.
+
+ComfyUI can release the idle translation worker when its VRAM budget is short;
+loading a new translator requests only a finite weights/KV-buffer budget from
+ComfyUI. DynamicVRAM virtual weight sizes do not count as a physical shortfall.
+Image weights remain subject to ComfyUI's normal memory management, including
+real RAM pressure. Model switching, `unload_after_run=true`, explicit `/free`
+unload requests, and ComfyUI exit still release the translation worker. Restart
+ComfyUI after updating the node; PhotoCraft does not need a new binary for this.
+Explicit full unload also forgets the previous image loader keys. The node does
+not initiate full unload on PhotoCraft selector changes; that is a client action.
+
+Verified on 2026-10-12 on one RTX 4090: 1.8B Heretic translation -> 512x512
+Turbo INT8 image -> translation -> image -> translation. The second image
+reused all three loader cache entries (about 0.90 s versus 7.12 s initially);
+the translator worker was loaded once and reused after image generation.
+Explicit `/free` stopped the worker and freed the image weights. Low-VRAM
+eviction, busy-worker protection and finite allocation budgets have regression
+tests; deliberately exhausting physical VRAM was not tested.
+
 Verified on 2026-10-11 with Windows PowerShell 5.1: fresh installation in a
 path containing spaces and Korean characters, Git fast-forward update, Git-free
 ZIP installation with source backup and environment reuse, and CUDA loading

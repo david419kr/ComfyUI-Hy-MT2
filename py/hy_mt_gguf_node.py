@@ -416,9 +416,6 @@ def ensure_gguf_file(model_key: str) -> str:
 
 
 class HyMT_Translation_GGUF:
-    def __init__(self):
-        self.llm = None
-        self.current_signature = None
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -448,38 +445,12 @@ class HyMT_Translation_GGUF:
         return True
 
     def load_model(self, model: str, gpu_layers: int = -1):
-        try:
-            from .isolated_llama import Llama
-        except ImportError:
-            raise ImportError(
-                "[HyMT GGUF] dedicated runtime is missing. Run install-comfyui-hymt2.ps1."
-            )
-
-        signature = (model, int(gpu_layers))
-        if self.llm is not None and self.current_signature == signature:
-            return
-
-        model_path = ensure_gguf_file(model)
-        print(f"[HyMT GGUF] Loading model from '{model_path}' (gpu_layers={gpu_layers}) ...")
-
-        if self.llm is not None:
-            self.llm.close()
-        self.llm = None
-        self.current_signature = None
-        self.llm = Llama(
-            model_path=model_path,
-            n_gpu_layers=int(gpu_layers),
-            n_ctx=8192,
-            verbose=False,
-        )
-        self.current_signature = signature
-        print(f"[HyMT GGUF] Model loaded successfully.")
+        from .residency import TRANSLATOR
+        return TRANSLATOR.acquire(ensure_gguf_file(model), gpu_layers)
 
     def unload_model(self):
-        if self.llm is not None:
-            self.llm.close()
-        self.llm = None
-        self.current_signature = None
+        from .residency import TRANSLATOR
+        TRANSLATOR.release("unload_after_run")
         free_memory()
 
     def translate(
@@ -493,8 +464,16 @@ class HyMT_Translation_GGUF:
         if not text.strip():
             return ("",)
 
-        self.load_model(model, gpu_layers=-1)
+        from .residency import TRANSLATOR
+        with TRANSLATOR.session():
+            llm = self.load_model(model, gpu_layers=-1)
+            try:
+                return self._translate(llm, translate_style, translate_to, text)
+            finally:
+                if unload_after_run:
+                    self.unload_model()
 
+    def _translate(self, llm, translate_style, translate_to, text):
         masked_text, token_map = mask_prompt_tags(text.strip())
         target_lang = resolve_target_language(text, translate_to)
         chunks = split_text_into_chunks(masked_text, max_chars=3000)
@@ -515,7 +494,7 @@ class HyMT_Translation_GGUF:
                 prompt = f"Translate the following text into {target_lang}. Note that you should only output the translated result without any additional explanation:\n\n{chunk}"
             messages = [{"role": "user", "content": prompt}]
 
-            result = self.llm.create_chat_completion(
+            result = llm.create_chat_completion(
                 messages=messages,
                 max_tokens=4096,
                 temperature=0.7,
@@ -534,9 +513,6 @@ class HyMT_Translation_GGUF:
         final_text = "\n\n".join(translated_chunks) if len(chunks) > 1 else (translated_chunks[0] if translated_chunks else "")
         if token_map:
             final_text = unmask_prompt_tags(final_text, token_map)
-
-        if unload_after_run:
-            self.unload_model()
 
         return (final_text,)
 
